@@ -37,13 +37,13 @@ export function BeliefPin({ position, confidence, kind = 'you' }) {
       </mesh>
       <Html position={[0, 2.5, 0]} center distanceFactor={15} zIndexRange={[3, 0]} style={{ pointerEvents: 'none' }}>
         <div style={{
-          background: 'rgba(13,17,23,0.85)',
+          background: 'rgba(10,12,13,0.88)',
           border: `1px solid ${style.color}`,
           color: style.color,
           padding: '2px 6px',
-          borderRadius: '3px',
           fontSize: '10px',
-          fontFamily: "'JetBrains Mono', monospace",
+          letterSpacing: '1px',
+          fontFamily: "'IBM Plex Mono', monospace",
           whiteSpace: 'nowrap',
         }}>
           {style.label}{confidence != null ? ` ${Math.round(confidence * 100)}%` : ''}

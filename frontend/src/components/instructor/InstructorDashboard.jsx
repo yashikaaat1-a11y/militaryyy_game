@@ -103,17 +103,17 @@ export default function InstructorDashboard() {
     <div className="instructor-dashboard">
       <div className="inst-header">
         <div className="inst-title">
-          <span>🎓</span> INSTRUCTOR DASHBOARD
+          <span className="inst-index">EXCON</span> INSTRUCTOR CONSOLE
         </div>
         <button className="back-btn" onClick={() => setView('SCENARIO')}>
-          ← Trainee View
+          TRAINEE VIEW
         </button>
       </div>
 
       <div className="inst-grid">
         {/* Scenario Configuration */}
         <div className="inst-card">
-          <div className="card-title">⚙️ SCENARIO CONFIGURATION</div>
+          <div className="card-title"><span className="panel-index">01</span> EXERCISE CONFIGURATION</div>
 
           <div className="preset-row">
             {Object.keys(PRESETS).map((p) => (
@@ -177,14 +177,14 @@ export default function InstructorDashboard() {
           </div>
 
           <button className="create-btn" onClick={handleCreate} disabled={isLoading}>
-            {isLoading ? 'CREATING...' : '🚀 CREATE & START SCENARIO'}
+            {isLoading ? 'CREATING...' : 'CREATE & START EXERCISE'}
           </button>
         </div>
 
         {/* Live Monitoring */}
         <div className="inst-card">
           <div className="card-title">
-            📡 LIVE MONITORING
+            <span className="panel-index">02</span> LIVE MONITORING
             {status && <span className={`live-dot ${status.is_paused ? 'paused' : active ? 'on' : ''}`} />}
           </div>
 
@@ -194,12 +194,12 @@ export default function InstructorDashboard() {
             <>
               <div className="control-row">
                 {status.is_paused ? (
-                  <button className="ctl-btn resume" disabled={!active} onClick={() => setPaused(false)}>▶ RESUME</button>
+                  <button className="ctl-btn resume" disabled={!active} onClick={() => setPaused(false)}>RESUME</button>
                 ) : (
-                  <button className="ctl-btn pause" disabled={!active} onClick={() => setPaused(true)}>⏸ PAUSE</button>
+                  <button className="ctl-btn pause" disabled={!active} onClick={() => setPaused(true)}>PAUSE</button>
                 )}
-                <button className="ctl-btn stop" disabled={!active} onClick={stopScenario}>⏹ STOP &amp; REVIEW</button>
-                <button className="ctl-btn" onClick={resetScenario}>✕ RESET</button>
+                <button className="ctl-btn stop" disabled={!active} onClick={stopScenario}>STOP &amp; REVIEW</button>
+                <button className="ctl-btn" onClick={resetScenario}>RESET</button>
               </div>
 
               <div className="monitor-stats">

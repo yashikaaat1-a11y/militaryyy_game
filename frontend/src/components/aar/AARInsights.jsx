@@ -2,12 +2,10 @@
 import React, { useState } from 'react';
 import { pct } from '../../utils/format';
 
-const ICONS = {
-  OBSERVE: '👁️', MOVE: '🏃', INTERCEPT: '⚔️', HOLD: '🛡️', WITHDRAW: '↩️', REQUEST_RECON: '🛩️',
-};
-const BIAS_ICONS = {
-  anchoring: '⚓', stale_source: '⌛', recency: '🆕', overconfidence: '🎲',
-  hesitation: '⏸', rash_commitment: '💥', paralysis: '🧊', escalation: '📈',
+const KEYS = { OBSERVE: 1, MOVE: 2, INTERCEPT: 3, HOLD: 4, WITHDRAW: 5, REQUEST_RECON: 6 };
+const BIAS_CODES = {
+  anchoring: 'ANC', stale_source: 'STL', recency: 'REC', overconfidence: 'OVC',
+  hesitation: 'HES', rash_commitment: 'RSH', paralysis: 'PAR', escalation: 'ESC',
 };
 const scoreColor = (v) => (v >= 75 ? '#4caf50' : v >= 55 ? '#ff9800' : '#f44336');
 const label = (t) => t.replace('_', ' ');
@@ -52,7 +50,7 @@ export function WhatIfTab({ comparison, cognitive }) {
       {regret && (
         <div className="whatif-headline">
           {regret.regret < 1
-            ? <>✅ <b>{label(regret.chosen)}</b> was the strongest option on the evidence you had.</>
+            ? <><b>{label(regret.chosen)}</b> was the strongest option on the evidence you had.</>
             : <>You chose <b>{label(regret.chosen)}</b> ({Math.round(regret.chosen_score)}). The evidence best supported{' '}
               <b>{label(regret.best)}</b> ({Math.round(regret.best_score)}) — <b>{Math.round(regret.regret)} points</b> left on the table.</>}
         </div>
@@ -65,9 +63,9 @@ export function WhatIfTab({ comparison, cognitive }) {
           return (
             <div key={a.decision_type} className={`whatif-row ${chosen ? 'chosen' : ''}`}>
               <div className="whatif-head">
-                <span className="whatif-action">{ICONS[a.decision_type]} {label(a.decision_type)}</span>
+                <span className="whatif-action"><span className="whatif-key">{KEYS[a.decision_type]}</span>{label(a.decision_type)}</span>
                 {chosen && <span className="tag tag-you">YOUR CALL</span>}
-                {isBest && <span className="tag tag-best">★ BEST ON EVIDENCE</span>}
+                {isBest && <span className="tag tag-best">BEST ON EVIDENCE</span>}
                 <span className="whatif-score" style={{ color: scoreColor(a.score) }}>{Math.round(a.score)}</span>
               </div>
               <div className="whatif-bar">
@@ -119,7 +117,7 @@ export function CognitiveTab({ cognitive }) {
         </div>
       )}
 
-      <div className="cog-section-title">🎯 BELIEF CALIBRATION</div>
+      <div className="cog-section-title">BELIEF CALIBRATION</div>
       {calibration ? (
         <div className="calib-card">
           <div className="calib-score" style={{ color: scoreColor(calibration.score) }}>
@@ -148,7 +146,7 @@ export function CognitiveTab({ cognitive }) {
                   <td>{b.decision}</td>
                   <td>grid {b.grid}</td>
                   <td>{pct(b.confidence)}</td>
-                  <td style={{ color: b.hit ? '#4caf50' : '#f44336' }}>{b.error} {b.hit ? '✓' : '✗'}</td>
+                  <td style={{ color: b.hit ? '#4caf50' : '#f44336' }}>{b.error} {b.hit ? 'HIT' : 'MISS'}</td>
                   <td>{b.evidence_error ?? '—'}</td>
                   <td className="belief-read">
                     {better ? 'Read past the noise' : worse ? 'Misread the evidence' : 'Followed the evidence'}
@@ -164,19 +162,19 @@ export function CognitiveTab({ cognitive }) {
         is your estimate, purple is the evidence and red is the truth.
       </div>
 
-      <div className="cog-section-title">🧠 COGNITIVE PATTERNS DETECTED</div>
+      <div className="cog-section-title">COGNITIVE PATTERNS DETECTED</div>
       {biases.length === 0 ? (
         <div className="bias-none">No bias patterns detected — disciplined reasoning under uncertainty.</div>
       ) : (
         biases.map((b, i) => (
           <div key={i} className="bias-card">
             <div className="bias-head">
-              <span className="bias-icon">{BIAS_ICONS[b.key] || '⚠'}</span>
+              <span className="bias-icon">{BIAS_CODES[b.key] || 'BIA'}</span>
               <span className="bias-name">{b.name}</span>
               <span className="bias-dec">Decision {b.decision}</span>
             </div>
             <div className="bias-detail">{b.detail}</div>
-            <div className="bias-tip">💡 {b.tip}</div>
+            <div className="bias-tip"><span>COACHING</span>{b.tip}</div>
           </div>
         ))
       )}

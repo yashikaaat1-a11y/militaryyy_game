@@ -28,6 +28,9 @@ export const useGameStore = create((set, get) => ({
   error: null,
   view: 'SCENARIO',      // SCENARIO | AAR | INSTRUCTOR
   selectedUnit: null,
+  gfxQuality: (() => {
+    try { return localStorage.getItem('tacticomm.gfx') || 'high'; } catch { return 'high'; }
+  })(),
   radioOn: (() => {
     try { return localStorage.getItem('tacticomm.radio') !== 'off'; } catch { return true; }
   })(),
@@ -38,6 +41,18 @@ export const useGameStore = create((set, get) => ({
   setReplayIndex: (i) => set((s) => ({ replayIndex: typeof i === 'function' ? i(s.replayIndex ?? 0) : i })),
   clearError: () => set({ error: null }),
   setAssessment: (pos) => set({ assessment: pos }),
+  setGfxQuality: (q, auto = false) => {
+    if (get().gfxQuality === q) return;
+    if (!auto) {
+      try { localStorage.setItem('tacticomm.gfx', q); } catch { /* storage unavailable */ }
+    }
+    set({ gfxQuality: q });
+  },
+  toggleGfx: () => set((s) => {
+    const next = s.gfxQuality === 'high' ? 'low' : 'high';
+    try { localStorage.setItem('tacticomm.gfx', next); } catch { /* storage unavailable */ }
+    return { gfxQuality: next };
+  }),
   toggleRadio: () => set((s) => {
     try { localStorage.setItem('tacticomm.radio', s.radioOn ? 'off' : 'on'); } catch { /* storage unavailable */ }
     return { radioOn: !s.radioOn };
