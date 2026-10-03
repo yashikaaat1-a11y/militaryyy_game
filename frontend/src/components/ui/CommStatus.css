@@ -1,0 +1,60 @@
+.comm-status {
+  background: rgba(13, 17, 23, 0.92);
+  border: 1px solid rgba(48, 54, 61, 0.8);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.comm-list {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comm-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.comm-unit-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.comm-callsign {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #c9d1d9;
+}
+
+.comm-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.comm-bar-track {
+  height: 4px;
+  background: rgba(48, 54, 61, 0.8);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.comm-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s ease, background 0.5s ease;
+}
+
+.comm-delay {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: #ffeb3b;
+  text-align: right;
+}
