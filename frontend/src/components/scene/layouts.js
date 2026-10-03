@@ -63,7 +63,7 @@ export const LAYOUTS = {
     trees: 85, rocks: 12, treeKind: 'broadleaf',
     water: { x: 1, width: 6, level: -0.95 },
     hq: [-8, 0],
-    clear: [[2, -4], [4, 6], [8, 2], [10, 10]],
+    clear: [[-4.5, -4], [6.5, 6], [8, 2], [10, 10]],
   },
   DESERT: {
     palette: { low: '#b39463', mid: '#c4a571', high: '#d4b886', peak: '#e2c99a', rock: '#9b7b52', soil: '#7a5c3b' },
