@@ -57,7 +57,7 @@ export default function ContactMarker({ position, confidence, label, isGroundTru
         </mesh>
       )}
 
-      <Html position={[0, 1.5, 0]} center distanceFactor={15} style={{ pointerEvents: 'none' }}>
+      <Html position={[0, 1.5, 0]} center distanceFactor={15} zIndexRange={[3, 0]} style={{ pointerEvents: 'none' }}>
         <div style={{
           background: isGroundTruth ? 'rgba(244,67,54,0.8)' : 'rgba(255,152,0,0.7)',
           color: '#fff',

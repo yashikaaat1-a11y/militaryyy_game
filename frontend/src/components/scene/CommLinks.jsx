@@ -37,6 +37,12 @@ function CommLink({ from, to, status }) {
 
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry().setFromPoints(linePoints);
+    // Dashed materials need per-vertex line distances, otherwise they render solid
+    const dist = [0];
+    for (let i = 1; i < linePoints.length; i++) {
+      dist.push(dist[i - 1] + linePoints[i].distanceTo(linePoints[i - 1]));
+    }
+    geo.setAttribute('lineDistance', new THREE.Float32BufferAttribute(dist, 1));
     return geo;
   }, [linePoints]);
 

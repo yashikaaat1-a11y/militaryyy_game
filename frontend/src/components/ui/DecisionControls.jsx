@@ -1,6 +1,7 @@
 /* ── Decision Controls — trainee action buttons ──────────── */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../../stores/gameStore';
+import { formatT } from '../../utils/format';
 import './DecisionControls.css';
 
 const DECISIONS = [
@@ -12,8 +13,41 @@ const DECISIONS = [
   { type: 'REQUEST_RECON', label: 'REQUEST RECON', icon: '🛩️', desc: 'Request aerial reconnaissance', color: '#00bcd4' },
 ];
 
+/** Counts down the decision window; freezes while the instructor has paused. */
+function DecisionClock({ state }) {
+  const [now, setNow] = useState(() => Date.now() / 1000);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now() / 1000), 250);
+    return () => clearInterval(t);
+  }, []);
+
+  if (!state?.decision_opened_at) return null;
+  const windowS = state.decision_window_s || 100;
+  const pausedNow = state.is_paused && state.paused_at ? now - state.paused_at : 0;
+  const paused = state.paused_total - state.decision_opened_paused_total + pausedNow;
+  const elapsed = Math.max(0, now - state.decision_opened_at - paused);
+  const left = windowS - elapsed;
+  const frac = Math.max(0, Math.min(1, left / windowS));
+  const color = frac > 0.5 ? '#4caf50' : frac > 0.2 ? '#ff9800' : '#f44336';
+
+  return (
+    <div className="decision-clock">
+      <div className="clock-row">
+        <span>DECISION WINDOW</span>
+        <span style={{ color }}>{left >= 0 ? formatT(left) : `-${formatT(-left)} OVER`}</span>
+      </div>
+      <div className="clock-bar">
+        <div className="clock-fill" style={{ width: `${frac * 100}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
+
 export default function DecisionControls() {
   const phase = useGameStore((s) => s.phase);
+  const state = useGameStore((s) => s.scenarioState);
+  const decisions = useGameStore((s) => s.decisions);
+  const isPaused = useGameStore((s) => s.isPaused);
   const makeDecision = useGameStore((s) => s.makeDecision);
   const advancePhase = useGameStore((s) => s.advancePhase);
   const isLoading = useGameStore((s) => s.isLoading);
@@ -21,7 +55,10 @@ export default function DecisionControls() {
   const [reasoning, setReasoning] = useState('');
 
   const isDecisionPhase = phase === 'DECISION';
-  const canAdvance = !['IDLE', 'AAR'].includes(phase);
+  const canAdvance = !['IDLE', 'AAR', 'DECISION'].includes(phase);
+  const maxDecisions = state?.config?.max_decisions || 3;
+  const reconLeft = state?.recon_remaining ?? 0;
+  const locked = isLoading || isPaused;
 
   const handleDecide = async () => {
     if (!selectedDecision) return;
@@ -35,13 +72,17 @@ export default function DecisionControls() {
       <div className="panel-header">
         <span className="panel-icon">🎯</span>
         <span>COMMAND DECISIONS</span>
+        {state && (
+          <span className="report-count">{Math.min(decisions.length + (isDecisionPhase ? 1 : 0), maxDecisions)} / {maxDecisions}</span>
+        )}
       </div>
 
       {isDecisionPhase ? (
         <div className="decision-content">
           <div className="decision-urgency">
-            ⚡ DECISION REQUIRED — Choose your action
+            ⚡ DECISION {decisions.length + 1} OF {maxDecisions} — Choose your action
           </div>
+          <DecisionClock state={state} />
           <div className="decision-grid">
             {DECISIONS.map((d) => (
               <button
@@ -49,11 +90,13 @@ export default function DecisionControls() {
                 className={`decision-btn ${selectedDecision === d.type ? 'selected' : ''}`}
                 style={{ '--btn-color': d.color }}
                 onClick={() => setSelectedDecision(d.type)}
-                disabled={isLoading}
+                disabled={locked}
               >
                 <span className="decision-icon">{d.icon}</span>
                 <span className="decision-label">{d.label}</span>
-                <span className="decision-desc">{d.desc}</span>
+                <span className="decision-desc">
+                  {d.type === 'REQUEST_RECON' ? `${d.desc} (${reconLeft} left)` : d.desc}
+                </span>
               </button>
             ))}
           </div>
@@ -61,7 +104,7 @@ export default function DecisionControls() {
             <div className="decision-confirm">
               <textarea
                 className="reasoning-input"
-                placeholder="Optional: Explain your reasoning..."
+                placeholder="Optional: Explain your reasoning (recorded for the AAR)..."
                 value={reasoning}
                 onChange={(e) => setReasoning(e.target.value)}
                 rows={2}
@@ -69,9 +112,9 @@ export default function DecisionControls() {
               <button
                 className="confirm-btn"
                 onClick={handleDecide}
-                disabled={isLoading}
+                disabled={locked}
               >
-                {isLoading ? 'EXECUTING...' : `EXECUTE: ${selectedDecision}`}
+                {isLoading ? 'EXECUTING...' : `EXECUTE: ${selectedDecision.replace('_', ' ')}`}
               </button>
             </div>
           )}
@@ -90,16 +133,16 @@ export default function DecisionControls() {
                   {phase === 'NORMAL' && 'Monitoring normal operations — advance when ready'}
                   {phase === 'DEGRADATION' && 'Communications degrading — observe the effects'}
                   {phase === 'CONFLICTING' && 'Conflicting reports incoming — assess carefully'}
-                  {phase === 'CONSEQUENCE' && 'Decision consequences unfolding...'}
+                  {phase === 'CONSEQUENCE' && 'Decision consequences unfolding — check the timeline'}
                   {phase === 'REVEAL' && 'Ground truth revealed — compare with your assessment'}
                 </div>
                 {canAdvance && (
                   <button
                     className="advance-btn"
                     onClick={advancePhase}
-                    disabled={isLoading}
+                    disabled={locked}
                   >
-                    {isLoading ? 'ADVANCING...' : '▶ ADVANCE PHASE'}
+                    {isPaused ? '⏸ PAUSED' : isLoading ? 'ADVANCING...' : phase === 'REVEAL' ? '📊 OPEN AFTER ACTION REVIEW' : '▶ ADVANCE PHASE'}
                   </button>
                 )}
               </>

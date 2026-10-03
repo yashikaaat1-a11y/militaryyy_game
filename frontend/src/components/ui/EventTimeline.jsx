@@ -1,6 +1,7 @@
 /* ── Event Timeline — chronological list of scenario events ── */
 import React, { useRef, useEffect } from 'react';
 import { useGameStore } from '../../stores/gameStore';
+import { missionTime } from '../../utils/format';
 import './EventTimeline.css';
 
 const EVENT_ICONS = {
@@ -11,6 +12,8 @@ const EVENT_ICONS = {
   DECISION: '⚡',
   CONSEQUENCE: '💥',
   GROUND_TRUTH_REVEALED: '🔍',
+  THREAT_CONTACT: '🚨',
+  INSTRUCTOR: '🎓',
 };
 
 const EVENT_COLORS = {
@@ -21,10 +24,13 @@ const EVENT_COLORS = {
   DECISION: '#4caf50',
   CONSEQUENCE: '#f44336',
   GROUND_TRUTH_REVEALED: '#00bcd4',
+  THREAT_CONTACT: '#ff1744',
+  INSTRUCTOR: '#d29922',
 };
 
 export default function EventTimeline() {
   const events = useGameStore((s) => s.events);
+  const startedAt = useGameStore((s) => s.scenarioState?.started_at);
   const listRef = useRef();
 
   useEffect(() => {
@@ -53,6 +59,7 @@ export default function EventTimeline() {
                   <span className="timeline-type" style={{ color: EVENT_COLORS[event.event_type] || '#8b949e' }}>
                     {event.event_type}
                   </span>
+                  <span className="timeline-time">{missionTime(event.timestamp, startedAt)}</span>
                 </div>
                 <div className="timeline-desc">{event.description}</div>
               </div>

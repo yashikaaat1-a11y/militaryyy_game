@@ -398,3 +398,184 @@
   background: linear-gradient(135deg, #388bfd, #58a6ff);
   transform: translateY(-1px);
 }
+
+/* ── Footer actions ── */
+.aar-footer { gap: 8px; }
+
+.export-btn {
+  background: rgba(33, 38, 45, 0.9);
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.export-btn:hover { border-color: #58a6ff; color: #58a6ff; }
+
+/* ── Per-decision score table ── */
+.review-table {
+  width: 100%;
+  margin-top: 16px;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.review-table th {
+  color: #8b949e;
+  font-weight: 500;
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 6px 4px;
+  border-bottom: 1px solid #30363d;
+}
+
+.review-table td {
+  padding: 7px 4px;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+  color: #c9d1d9;
+}
+
+.review-decision { font-weight: 700; }
+.review-total { font-weight: 800; font-size: 13px; }
+
+.score-footnote {
+  margin-top: 12px;
+  font-size: 11px;
+  color: #8b949e;
+  font-style: italic;
+}
+
+/* ── Replay ── */
+.replay-section { display: flex; flex-direction: column; gap: 10px; }
+
+.replay-controls { display: flex; gap: 6px; justify-content: center; }
+
+.replay-btn {
+  background: rgba(33, 38, 45, 0.9);
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.replay-btn.primary { background: #1f6feb; border-color: #1f6feb; color: #fff; min-width: 96px; }
+.replay-btn:hover { border-color: #58a6ff; }
+
+.replay-slider { width: 100%; accent-color: #00bcd4; }
+
+.replay-now {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #4dd0e1;
+  text-align: center;
+}
+
+.replay-note { font-size: 11px; color: #8b949e; text-align: center; }
+
+.replay-frames { display: flex; flex-direction: column; gap: 3px; }
+
+.replay-frame {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  background: rgba(22, 27, 34, 0.7);
+  border: 1px solid transparent;
+  border-left: 3px solid #30363d;
+  color: #c9d1d9;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.replay-frame.active { border-color: rgba(0, 188, 212, 0.6); background: rgba(0, 188, 212, 0.08); }
+.replay-frame.phase-degradation { border-left-color: #ff9800; }
+.replay-frame.phase-conflicting { border-left-color: #f44336; }
+.replay-frame.phase-decision { border-left-color: #e91e63; }
+.replay-frame.phase-consequence { border-left-color: #9c27b0; }
+.replay-frame.phase-reveal, .replay-frame.phase-aar { border-left-color: #00bcd4; }
+.frame-time { font-family: 'JetBrains Mono', monospace; color: #8b949e; }
+.frame-stats { color: #6e7681; font-size: 10px; }
+
+/* ── Decision point comparison ── */
+.dp-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+
+.dp-tab {
+  background: rgba(33, 38, 45, 0.9);
+  border: 1px solid #30363d;
+  color: #8b949e;
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.dp-tab.active { color: #58a6ff; border-color: #58a6ff; }
+
+.dp-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.dp-meta { font-size: 11px; color: #8b949e; flex: 1; }
+.dp-score { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 800; }
+
+.warn-value { color: #ff9800; font-weight: 700; }
+
+.dp-verdict {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(88, 166, 255, 0.06);
+  border: 1px solid rgba(88, 166, 255, 0.25);
+  border-radius: 6px;
+  font-size: 12px;
+  color: #c9d1d9;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dp-truth-note { font-size: 11px; color: #8b949e; margin-top: 4px; }
+
+/* ── Timeline ── */
+.aar-timeline-item { cursor: pointer; border-radius: 4px; }
+.aar-timeline-item:hover { background: rgba(88, 166, 255, 0.06); }
+.aar-tl-time { color: #6e7681; font-weight: 400; margin-left: 6px; }
+.aar-timeline-item.type-decision .aar-tl-dot { background: #4caf50; }
+.aar-timeline-item.type-consequence .aar-tl-dot { background: #9c27b0; }
+.aar-timeline-item.type-comm_change .aar-tl-dot { background: #ff9800; }
+.aar-timeline-item.type-threat_contact .aar-tl-dot { background: #ff1744; }
+.aar-timeline-item.type-ground_truth_revealed .aar-tl-dot { background: #00bcd4; }
+
+/* ── Feedback cards ── */
+.review-card {
+  border: 1px solid rgba(48, 54, 61, 0.7);
+  border-left: 3px solid;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: rgba(22, 27, 34, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.review-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.review-note { font-size: 11px; color: #8b949e; }

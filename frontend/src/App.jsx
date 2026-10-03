@@ -1,5 +1,5 @@
 /* ── TactiComm — Main Application ──────────────────────────── */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useGameStore } from './stores/gameStore';
 import TacticalScene from './components/scene/TacticalScene';
 import PhaseIndicator from './components/ui/PhaseIndicator';
@@ -62,6 +62,7 @@ function ScenarioView() {
   const setView = useGameStore((s) => s.setView);
   const error = useGameStore((s) => s.error);
   const clearError = useGameStore((s) => s.clearError);
+  const isPaused = useGameStore((s) => s.isPaused);
 
   const showAAR = view === 'AAR' || phase === 'AAR';
 
@@ -109,24 +110,24 @@ function ScenarioView() {
         </div>
       )}
 
-      {/* Main content */}
+      {/* Main content — the 3D scene stays mounted; only the right panel changes */}
       <div className="main-content">
+        <div className="scene-container">
+          <TacticalScene />
+          {isPaused && (
+            <div className="paused-overlay">
+              <div className="paused-title">⏸ PAUSED BY INSTRUCTOR</div>
+              <div className="paused-sub">Stand by for orders</div>
+            </div>
+          )}
+        </div>
+
         {showAAR ? (
-          <div className="aar-layout">
-            <div className="aar-scene">
-              <TacticalScene />
-            </div>
-            <div className="aar-panel-container">
-              <AARPanel />
-            </div>
+          <div className="aar-panel-container">
+            <AARPanel />
           </div>
         ) : (
           <>
-            {/* 3D Scene (center) */}
-            <div className="scene-container">
-              <TacticalScene />
-            </div>
-
             {/* Right sidebar */}
             <div className="right-sidebar">
               <div className="sidebar-section comm-section">
@@ -152,14 +153,25 @@ function ScenarioView() {
 export default function App() {
   const phase = useGameStore((s) => s.phase);
   const view = useGameStore((s) => s.view);
+  const startPolling = useGameStore((s) => s.startPolling);
+  const stopPolling = useGameStore((s) => s.stopPolling);
 
-  if (view === 'INSTRUCTOR') {
-    return <InstructorDashboard />;
-  }
+  useEffect(() => {
+    startPolling();
+    return stopPolling;
+  }, [startPolling, stopPolling]);
 
-  if (phase === 'IDLE') {
-    return <WelcomeScreen />;
-  }
-
-  return <ScenarioView />;
+  // The 3D scene is mounted once and never torn down — tearing down the canvas
+  // breaks drei's <Html> labels. Welcome and instructor screens are overlays.
+  return (
+    <>
+      <ScenarioView />
+      {phase === 'IDLE' && view !== 'INSTRUCTOR' && (
+        <div className="screen-overlay"><WelcomeScreen /></div>
+      )}
+      {view === 'INSTRUCTOR' && (
+        <div className="screen-overlay"><InstructorDashboard /></div>
+      )}
+    </>
+  );
 }

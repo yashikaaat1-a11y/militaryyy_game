@@ -1,6 +1,6 @@
 /* ── TactiComm API Client ───────────────────────────────── */
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
 
 async function apiCall(endpoint, options = {}) {
   const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -9,32 +9,41 @@ async function apiCall(endpoint, options = {}) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || 'API Error');
+    const e = new Error(err.detail || 'API Error');
+    e.status = res.status;
+    throw e;
   }
   return res.json();
 }
 
+const post = (endpoint, body) =>
+  apiCall(endpoint, { method: 'POST', body: JSON.stringify(body || {}) });
+
 export const api = {
-  createScenario: (config) =>
-    apiCall('/scenario/create', { method: 'POST', body: JSON.stringify(config || {}) }),
+  createScenario: (config) => post('/scenario/create', config),
 
   getState: () => apiCall('/scenario/state'),
 
-  advancePhase: () => apiCall('/scenario/advance', { method: 'POST' }),
+  advancePhase: () => post('/scenario/advance'),
 
   makeDecision: (decisionType, reasoning) =>
-    apiCall('/scenario/decide', {
-      method: 'POST',
-      body: JSON.stringify({ decision_type: decisionType, reasoning }),
-    }),
+    post('/scenario/decide', { decision_type: decisionType, reasoning }),
 
-  resetScenario: () => apiCall('/scenario/reset', { method: 'POST' }),
+  setPaused: (paused) => post('/scenario/pause', { paused }),
+
+  stopScenario: () => post('/scenario/stop'),
+
+  resetScenario: () => post('/scenario/reset'),
 
   getScore: () => apiCall('/aar/score'),
 
   getTimeline: () => apiCall('/aar/timeline'),
 
   getComparison: () => apiCall('/aar/comparison'),
+
+  getReplay: () => apiCall('/aar/replay'),
+
+  getReport: () => apiCall('/aar/report'),
 
   getInstructorStatus: () => apiCall('/instructor/status'),
 };

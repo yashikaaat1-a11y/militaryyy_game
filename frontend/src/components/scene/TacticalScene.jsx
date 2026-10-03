@@ -11,35 +11,70 @@ import CommandCentre from './CommandCentre';
 import UnitMarker from './UnitMarker';
 import CommLinks from './CommLinks';
 import ContactMarker from './ContactMarker';
+import { formatT } from '../../utils/format';
+
+const INFO_CATEGORIES = ['CONTACT', 'SIGINT', 'RECON'];
+
+function Legend({ showTruth }) {
+  const item = (swatch, label) => (
+    <div className="legend-item">{swatch}<span>{label}</span></div>
+  );
+  return (
+    <div className="scene-legend">
+      {item(<span className="legend-swatch" style={{ background: '#2196f3' }} />, 'Friendly unit')}
+      {item(<span className="legend-swatch diamond" style={{ borderColor: '#ff9800' }} />, 'Reported contact (? = confidence)')}
+      {showTruth && item(<span className="legend-swatch diamond solid" style={{ background: '#f44336' }} />, 'Actual enemy (ground truth)')}
+      <div className="legend-sep" />
+      {item(<span className="legend-line" style={{ borderColor: '#4caf50' }} />, 'Link normal')}
+      {item(<span className="legend-line dashed" style={{ borderColor: '#ffeb3b' }} />, 'Link delayed')}
+      {item(<span className="legend-line dashed" style={{ borderColor: '#ff9800' }} />, 'Link degraded')}
+      {item(<span className="legend-line dotted" style={{ borderColor: '#f44336' }} />, 'Link lost')}
+    </div>
+  );
+}
 
 export default function TacticalScene() {
-  const units = useGameStore((s) => s.units);
+  const liveUnits = useGameStore((s) => s.units);
   const reports = useGameStore((s) => s.reports);
   const phase = useGameStore((s) => s.phase);
+  const round = useGameStore((s) => s.scenarioState?.round || 1);
   const selectedUnit = useGameStore((s) => s.selectedUnit);
   const setSelectedUnit = useGameStore((s) => s.setSelectedUnit);
   const groundTruth = useGameStore((s) => s.groundTruth);
+  const replayFrames = useGameStore((s) => s.replayFrames);
+  const replayIndex = useGameStore((s) => s.replayIndex);
 
-  // Extract reported contact positions from reports
-  const contacts = reports
-    .filter((r) => r.reported_position && r.category === 'CONTACT')
-    .map((r) => ({
-      position: r.reported_position,
-      confidence: r.confidence,
-      label: r.source_unit,
-      isGroundTruth: false,
+  const frame = phase === 'AAR' && replayIndex !== null ? replayFrames[replayIndex] : null;
+
+  let units, contacts, hostiles;
+  if (frame) {
+    // AAR replay: show the recorded frame, with ground truth always visible
+    units = frame.units;
+    contacts = frame.contacts.map((c) => ({
+      position: c.position, confidence: c.confidence, label: c.source, isGroundTruth: false,
     }));
+    hostiles = frame.hostiles;
+  } else {
+    units = liveUnits;
+    // Only the current round's intelligence is plotted — older reports are stale
+    contacts = reports
+      .filter((r) => r.reported_position && INFO_CATEGORIES.includes(r.category) && r.round === round)
+      .map((r) => ({
+        position: r.reported_position,
+        confidence: r.confidence,
+        label: r.source_unit,
+        isGroundTruth: false,
+      }));
+    const showGroundTruth = phase === 'REVEAL' || phase === 'AAR';
+    hostiles = showGroundTruth && groundTruth?.hostile_units ? groundTruth.hostile_units : [];
+  }
 
-  // Show ground truth in REVEAL and AAR phases
-  const showGroundTruth = phase === 'REVEAL' || phase === 'AAR';
-  const hostileMarkers = showGroundTruth && groundTruth?.hostile_units
-    ? groundTruth.hostile_units.map((h) => ({
-        position: h.position,
-        confidence: 1,
-        label: h.name,
-        isGroundTruth: true,
-      }))
-    : [];
+  const hostileMarkers = hostiles.map((h) => ({
+    position: h.position,
+    confidence: 1,
+    label: h.engaged ? `${h.name} (engaged)` : h.name,
+    isGroundTruth: true,
+  }));
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -89,6 +124,13 @@ export default function TacticalScene() {
           />
         </Suspense>
       </Canvas>
+
+      {units.length > 0 && <Legend showTruth={hostileMarkers.length > 0} />}
+      {frame && (
+        <div className="replay-banner">
+          ⏪ REPLAY · T+{formatT(frame.t)} · {frame.label}
+        </div>
+      )}
     </div>
   );
 }

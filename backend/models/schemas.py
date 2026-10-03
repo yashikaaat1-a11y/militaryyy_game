@@ -75,6 +75,8 @@ class IntelReport(BaseModel):
     is_accurate: bool = True  # ground truth
     category: str = "CONTACT"
     received_at: Optional[float] = None  # when trainee actually sees it
+    round: int = 1
+    delay_s: float = 0.0  # how long the report sat in a degraded link
 
 
 class Decision(BaseModel):
@@ -85,6 +87,8 @@ class Decision(BaseModel):
     reasoning: Optional[str] = None
     available_info: list[str] = []  # report IDs available at decision time
     phase: ScenarioPhase = ScenarioPhase.DECISION
+    round: int = 1
+    context: dict = {}  # what the trainee knew (and, hidden, the truth) at decision time
 
 
 class ScenarioEvent(BaseModel):
@@ -103,6 +107,7 @@ class ScoreBreakdown(BaseModel):
     resource_management: float = 0.0    # 15%
     total: float = 0.0
     explanations: list[str] = []
+    decision_reviews: list[dict] = []  # per-decision breakdown + verdict
 
 
 class ScenarioConfig(BaseModel):
@@ -116,6 +121,8 @@ class ScenarioConfig(BaseModel):
     threat_difficulty: str = "MEDIUM"
     num_friendly_units: int = 3
     max_decisions: int = 3
+    recon_assets: int = 2
+    seed: Optional[int] = None
 
 
 class ScenarioState(BaseModel):
@@ -123,6 +130,16 @@ class ScenarioState(BaseModel):
     config: ScenarioConfig = Field(default_factory=ScenarioConfig)
     phase: ScenarioPhase = ScenarioPhase.BRIEFING
     elapsed_time: float = 0.0
+    started_at: float = Field(default_factory=time.time)
+    round: int = 1
+    recon_remaining: int = 2
+    is_paused: bool = False
+    paused_at: Optional[float] = None
+    paused_total: float = 0.0
+    decision_opened_at: Optional[float] = None
+    decision_opened_paused_total: float = 0.0
+    modifiers: dict = {}  # consequence effects carried into the next round
+    snapshots: list[dict] = []  # replay frames
     units: list[Unit] = []
     reports: list[IntelReport] = []
     decisions: list[Decision] = []

@@ -169,3 +169,35 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Decision window countdown */
+.decision-clock {
+  margin: 0 0 10px;
+}
+
+.clock-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #8b949e;
+  margin-bottom: 4px;
+}
+
+.clock-row span:last-child {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.clock-bar {
+  height: 4px;
+  background: rgba(48, 54, 61, 0.6);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.clock-fill {
+  height: 100%;
+  transition: width 0.25s linear, background 0.5s;
+}

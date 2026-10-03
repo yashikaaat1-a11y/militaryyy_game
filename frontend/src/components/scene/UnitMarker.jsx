@@ -139,7 +139,7 @@ export default function UnitMarker({ unit, isSelected, onClick }) {
       </group>
 
       {/* Label */}
-      <Html position={[0, 1.5, 0]} center distanceFactor={15} style={{ pointerEvents: 'none' }}>
+      <Html position={[0, 1.5, 0]} center distanceFactor={15} zIndexRange={[3, 0]} style={{ pointerEvents: 'none' }}>
         <div style={{
           background: 'rgba(0,0,0,0.75)',
           color: '#fff',

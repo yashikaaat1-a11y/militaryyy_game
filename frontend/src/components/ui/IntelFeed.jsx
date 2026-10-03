@@ -1,6 +1,7 @@
 /* ── Intelligence Feed — incoming reports with confidence ──── */
 import React, { useRef, useEffect } from 'react';
 import { useGameStore } from '../../stores/gameStore';
+import { missionTime } from '../../utils/format';
 import './IntelFeed.css';
 
 const CATEGORY_ICONS = {
@@ -23,6 +24,8 @@ function ConfidenceBar({ value }) {
 
 export default function IntelFeed() {
   const reports = useGameStore((s) => s.reports);
+  const startedAt = useGameStore((s) => s.scenarioState?.started_at);
+  const round = useGameStore((s) => s.scenarioState?.round || 1);
   const feedRef = useRef();
 
   useEffect(() => {
@@ -43,12 +46,16 @@ export default function IntelFeed() {
           <div className="feed-empty">Awaiting intelligence reports...</div>
         ) : (
           reports.map((report, i) => (
-            <div key={report.id || i} className={`feed-item ${report.confidence < 0.5 ? 'low-confidence' : ''}`}>
+            <div key={report.id || i} className={`feed-item ${report.confidence < 0.5 ? 'low-confidence' : ''} ${report.round < round ? 'stale' : ''}`}>
               <div className="feed-header">
                 <span className="feed-source">
                   {CATEGORY_ICONS[report.category] || '📄'} {report.source_unit}
                 </span>
                 <span className="feed-category">{report.category}</span>
+              </div>
+              <div className="feed-meta">
+                <span>R{report.round} · obs {missionTime(report.timestamp, startedAt)}</span>
+                {report.delay_s > 0 && <span className="feed-delay">received {report.delay_s.toFixed(0)}s late</span>}
               </div>
               <div className="feed-content">{report.content}</div>
               <div className="feed-footer">

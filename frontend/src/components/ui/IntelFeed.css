@@ -158,3 +158,17 @@
   color: #8b949e;
   font-family: 'JetBrains Mono', monospace;
 }
+
+.feed-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: #6e7681;
+  margin: 2px 0 4px;
+}
+
+.feed-delay { color: #ffeb3b; }
+
+.feed-item.stale { opacity: 0.45; }
