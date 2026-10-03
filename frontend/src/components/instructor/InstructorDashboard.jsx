@@ -132,6 +132,24 @@ export default function InstructorDashboard() {
               <span>Scenario Name</span>
               <input type="text" value={config.name} onChange={(e) => set('name')(e.target.value)} />
             </label>
+            <label className="config-field">
+              <span>Layout / Terrain</span>
+              <select
+                value={config.scenario_type}
+                onChange={(e) => {
+                  const type = e.target.value;
+                  const name = type === 'MOUNTAIN' ? 'Mountain Ambush' :
+                               type === 'RIVER' ? 'River Patrol' :
+                               type === 'DESERT' ? 'Desert Assault' : 'Urban Comms Failure';
+                  setConfig((c) => ({ ...c, scenario_type: type, name }));
+                }}
+              >
+                <option value="URBAN">URBAN</option>
+                <option value="MOUNTAIN">MOUNTAIN</option>
+                <option value="RIVER">RIVER</option>
+                <option value="DESERT">DESERT</option>
+              </select>
+            </label>
             <Slider label="Comm Reliability" value={config.comm_reliability} onChange={set('comm_reliability')} />
             <Slider label="Dropout Probability" value={config.dropout_probability} onChange={set('dropout_probability')} />
             <Slider label="Conflicting Report Prob." value={config.conflicting_report_probability} onChange={set('conflicting_report_probability')} />
