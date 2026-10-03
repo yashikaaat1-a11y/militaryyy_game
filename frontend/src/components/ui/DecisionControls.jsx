@@ -51,6 +51,9 @@ export default function DecisionControls() {
   const makeDecision = useGameStore((s) => s.makeDecision);
   const advancePhase = useGameStore((s) => s.advancePhase);
   const isLoading = useGameStore((s) => s.isLoading);
+  const assessment = useGameStore((s) => s.assessment);
+  const assessConfidence = useGameStore((s) => s.assessConfidence);
+  const setAssessConfidence = useGameStore((s) => s.setAssessConfidence);
   const [selectedDecision, setSelectedDecision] = useState(null);
   const [reasoning, setReasoning] = useState('');
 
@@ -83,6 +86,29 @@ export default function DecisionControls() {
             ⚡ DECISION {decisions.length + 1} OF {maxDecisions} — Choose your action
           </div>
           <DecisionClock state={state} />
+
+          <div className={`assess-box ${assessment ? 'done' : ''}`}>
+            <div className="assess-step">STEP 1 · COMMANDER'S ASSESSMENT</div>
+            {assessment ? (
+              <div className="assess-pos">
+                📍 Main threat estimated at ({assessment.x.toFixed(1)}, {assessment.z.toFixed(1)}) — click the map to move
+              </div>
+            ) : (
+              <div className="assess-hint">Click the map where you believe the main enemy threat is.</div>
+            )}
+            <div className="assess-conf">
+              <span>How sure are you?</span>
+              <input
+                type="range" min="0.05" max="1" step="0.05"
+                value={assessConfidence}
+                onChange={(e) => setAssessConfidence(parseFloat(e.target.value))}
+                disabled={locked}
+              />
+              <span className="assess-conf-val">{Math.round(assessConfidence * 100)}%</span>
+            </div>
+          </div>
+
+          <div className="assess-step">STEP 2 · ORDER</div>
           <div className="decision-grid">
             {DECISIONS.map((d) => (
               <button
@@ -112,9 +138,11 @@ export default function DecisionControls() {
               <button
                 className="confirm-btn"
                 onClick={handleDecide}
-                disabled={locked}
+                disabled={locked || !assessment}
               >
-                {isLoading ? 'EXECUTING...' : `EXECUTE: ${selectedDecision.replace('_', ' ')}`}
+                {!assessment
+                  ? '📍 MARK YOUR THREAT ESTIMATE FIRST'
+                  : isLoading ? 'EXECUTING...' : `EXECUTE: ${selectedDecision.replace('_', ' ')}`}
               </button>
             </div>
           )}

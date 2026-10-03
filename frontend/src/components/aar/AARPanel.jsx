@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { formatT, missionTime, pct } from '../../utils/format';
 import { downloadJSON, printReport } from './exportReport';
+import { WhatIfTab, CognitiveTab } from './AARInsights';
 import './AARPanel.css';
 
 const CATEGORIES = [
@@ -353,8 +354,10 @@ export default function AARPanel() {
 
   const TABS = [
     ['score', '📊 Scores'],
+    ['cognitive', '🧠 Cognitive'],
+    ['whatif', '🔀 What-If'],
     ['replay', '⏪ Replay'],
-    ['comparison', '🔍 Knowledge vs Truth'],
+    ['comparison', '🔍 Knew vs Truth'],
     ['timeline', '📋 Timeline'],
     ['feedback', '💡 Feedback'],
   ];
@@ -382,6 +385,8 @@ export default function AARPanel() {
 
       <div className="aar-content">
         {tab === 'score' && <ScoresTab score={score} />}
+        {tab === 'cognitive' && <CognitiveTab cognitive={score.cognitive} />}
+        {tab === 'whatif' && <WhatIfTab comparison={comparison} cognitive={score.cognitive} />}
         {tab === 'replay' && <ReplayTab frames={frames} index={replayIndex ?? 0} setIndex={setReplayIndex} />}
         {tab === 'comparison' && (
           <ComparisonTab comparison={comparison} frames={frames} setReplayIndex={setReplayIndex} />

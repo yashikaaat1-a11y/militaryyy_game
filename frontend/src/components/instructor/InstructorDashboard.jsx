@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { api } from '../../engine/api';
+import { unlockAudio } from '../../engine/radio';
 import { formatT, missionTime } from '../../utils/format';
 import './InstructorDashboard.css';
 
@@ -89,6 +90,7 @@ export default function InstructorDashboard() {
   };
 
   const handleCreate = async () => {
+    unlockAudio();
     await createScenario(config);
     setView('SCENARIO');
   };

@@ -388,6 +388,28 @@ def _report(state, source, content, category, confidence, pos=None, accurate=Tru
     ))
 
 
+GARBLE = "▒▒▒"
+
+
+def _garble(text: str, rng: random.Random, rate: float = 0.3) -> str:
+    """Drop words from a transmission on a degraded link. Grid refs, numbers and
+    the message header survive so the plotted position stays consistent."""
+    words = text.split(" ")
+    out, dropped = [], 0
+    for i, w in enumerate(words):
+        keep = i < 2 or any(ch.isdigit() for ch in w) or w.startswith("[")
+        if not keep and rng.random() < rate:
+            dropped += 1
+            if out and out[-1] == GARBLE:
+                continue
+            out.append(GARBLE)
+        else:
+            out.append(w)
+    if not dropped and len(words) > 3:
+        out[2] = GARBLE
+    return " ".join(out)
+
+
 def _generate_normal_reports(state: ScenarioState):
     rng = _rng(state, "normal")
     subs = _subs(state)
@@ -453,6 +475,8 @@ def _generate_round_reports(state: ScenarioState):
         else:
             what = f"Possible {TYPE_WORDS.get(h['type'], 'enemy element')}, unconfirmed"
         text = f"{prefix}CONTACT: {what} vicinity grid {grid(pos)}."
+        if u.comm_status == CommStatus.DEGRADED:
+            text = _garble(text, rng)
 
         # Dropout: the report is sent but never arrives
         if rng.random() < state.config.dropout_probability * 0.5:
@@ -485,7 +509,10 @@ def _generate_conflicting_reports(state: ScenarioState):
             src = rng.choice(sources)
             delay_s = src.comm_delay_ms / 1000 * rng.uniform(1.5, 3.0) if src.comm_status != CommStatus.NORMAL else 0.0
             prefix = f"[DELAYED {delay_s:.0f}s] " if delay_s else ""
-            _report(state, src.callsign, f"{prefix}CONTACT REPORT: {what} at grid {grid(pos)}.",
+            text = f"{prefix}CONTACT REPORT: {what} at grid {grid(pos)}."
+            if src.comm_status == CommStatus.DEGRADED:
+                text = _garble(text, rng)
+            _report(state, src.callsign, text,
                     "CONTACT", rng.uniform(0.45, 0.72), pos, accurate=False, delay_s=delay_s)
         else:
             _report(state, "OVERLORD", f"SIGINT intercept: {what.lower()} transmitting near grid {grid(pos)}. Low confidence.",
@@ -511,6 +538,10 @@ def process_decision(state: ScenarioState, decision: Decision) -> ScenarioState:
     decision.round = state.round
     decision.available_info = [r.id for r in state.reports]
     decision.context = _knowledge_context(state, decision)
+    if decision.assessment:
+        _record_assessment(state, decision)
+    # Replay every alternative from this exact moment before committing to one
+    decision.context["alternatives"] = _counterfactuals(state, decision)
     state.decisions.append(decision)
 
     _event(state, "DECISION", f"Commander decided: {decision.decision_type.value}",
@@ -523,6 +554,62 @@ def process_decision(state: ScenarioState, decision: Decision) -> ScenarioState:
            **{"from": "DECISION", "to": "CONSEQUENCE", "round": state.round})
     _snapshot(state, f"Round {state.round}: {decision.decision_type.value.replace('_', ' ').title()} — consequences")
     return state
+
+
+def _record_assessment(state: ScenarioState, decision: Decision):
+    """Store the commander's belief next to what the evidence supported and the truth."""
+    a = decision.assessment
+    pos = {"x": round(_clamp(float(a.get("x", 0)), -15, 15), 2), "y": 0,
+           "z": round(_clamp(float(a.get("z", 0)), -15, 15), 2)}
+    conf = round(_clamp(float(a.get("confidence", 0.5)), 0.05, 1.0), 2)
+    decision.assessment = {**pos, "confidence": conf, "grid": grid(pos)}
+
+    ctx = decision.context
+    reps = [r for r in ctx["reports"] if r["category"] != "COMM"]
+    evidence = None
+    if reps:
+        # Confidence-weighted centre of the cluster around the most trusted report
+        best = max(reps, key=lambda r: r["confidence"])
+        cluster = [r for r in reps if _dist(r["position"], best["position"]) <= 4]
+        w = sum(r["confidence"] for r in cluster)
+        evidence = {"x": round(sum(r["position"]["x"] * r["confidence"] for r in cluster) / w, 2), "y": 0,
+                    "z": round(sum(r["position"]["z"] * r["confidence"] for r in cluster) / w, 2)}
+        evidence["grid"] = grid(evidence)
+        # Which single report does the belief sit closest to?
+        nearest = min(reps, key=lambda r: _dist(r["position"], pos))
+        ctx["assessment_anchor"] = {"id": nearest["id"], "source": nearest["source"],
+                                    "confidence": nearest["confidence"], "delay_s": nearest["delay_s"],
+                                    "distance": round(_dist(nearest["position"], pos), 1)}
+    ctx["evidence_estimate"] = evidence
+    ctx["truth"]["assessment_error"] = round(min((_dist(h["position"], pos) for h in _hostiles(state)), default=0), 1)
+    if evidence:
+        ctx["truth"]["evidence_error"] = round(min((_dist(h["position"], evidence) for h in _hostiles(state)), default=0), 1)
+
+
+def _counterfactuals(state: ScenarioState, decision: Decision) -> list[dict]:
+    """Simulate all six actions from the same state: in-context score + what would have happened."""
+    subs_before = sum(u.health for u in _subs(state))
+    results = []
+    for alt in DecisionType:
+        clone = state.model_copy(deep=True)
+        alt_decision = decision.model_copy(update={"decision_type": alt})
+        n_events = len(clone.events)
+        _apply_consequences(clone, alt_decision)
+        new = clone.events[n_events:]
+        outcome = next((e.description for e in new if e.event_type == "CONSEQUENCE"), "")
+        csubs = _subs(clone)
+        gap = min((_dist(h["position"], u.position) for h in _hostiles(clone) if not h.get("engaged") for u in csubs),
+                  default=None)
+        results.append({
+            "decision_type": alt.value,
+            "score": _score_decision(alt_decision, 0)["total"],
+            "outcome": outcome,
+            "strength_change": round(sum(u.health for u in csubs) - subs_before, 1),
+            "enemies_halted": sum(1 for h in _hostiles(clone) if h.get("engaged")),
+            "threat_contact": any(e.event_type == "THREAT_CONTACT" for e in new),
+            "closest_threat": round(gap, 1) if gap is not None else None,
+        })
+    return results
 
 
 def _type_conflict(reports) -> bool:
@@ -835,6 +922,175 @@ def _score_decision(d: Decision, idx: int) -> dict:
     }
 
 
+BIAS_TIPS = {
+    "anchoring": "Re-plot the threat from scratch on every update: what would you believe if this were the first report?",
+    "stale_source": "Weigh a report by its age as well as its confidence; a delayed report describes where the enemy was.",
+    "recency": "The newest report is not automatically the best one. Compare it against the most reliable source.",
+    "overconfidence": "When reports conflict, state wide uncertainty and buy information before committing.",
+    "hesitation": "If you are confident, act. Gathering more intel you don't need costs time the enemy uses.",
+    "rash_commitment": "Don't commit forces against a picture you yourself rated as doubtful.",
+    "paralysis": "Repeatedly waiting on a clear picture surrenders the initiative.",
+    "escalation": "A failed intercept is new evidence. Re-assess before repeating the same action.",
+}
+
+
+def _good_picture(c: dict) -> bool:
+    return c["recon_fresh"] or (not c["conflict"] and c["max_confidence"] >= 0.75)
+
+
+def _commander_profile(decs, calibration, biases, total_regret) -> dict:
+    """Summarise the decision pattern as a commander archetype."""
+    if not decs:
+        return {"name": "No Decisions", "summary": "No decisions were taken."}
+    n = len(decs)
+    share = lambda kinds: sum(d.decision_type in kinds for d in decs) / n
+    active = share((DecisionType.INTERCEPT, DecisionType.MOVE))
+    info = share((DecisionType.OBSERVE, DecisionType.REQUEST_RECON))
+    defensive = share((DecisionType.HOLD, DecisionType.WITHDRAW))
+    avg_regret = total_regret / n
+    keys = {b["key"] for b in biases}
+    calibrated = not calibration or calibration["label"] == "Well calibrated"
+
+    if avg_regret < 8 and calibrated and not keys:
+        name, summary = "Adaptive Commander", "Matched each action to the quality of the picture, and knew how much to trust it."
+    elif active >= 0.6:
+        if avg_regret > 20:
+            name, summary = "Aggressive Gambler", "Committed forces faster than the evidence justified. Bold, but the intel often wasn't there to support it."
+        else:
+            name, summary = "Bold Striker", "Biased toward action and mostly acted when the picture supported it."
+    elif info >= 0.6:
+        if "paralysis" in keys or "hesitation" in keys:
+            name, summary = "Hesitant Analyst", "Kept gathering information after the picture was already good enough to act."
+        else:
+            name, summary = "Methodical Analyst", "Bought information before committing, which suits a degraded comms environment."
+    elif defensive >= 0.6:
+        name, summary = "Cautious Guardian", "Prioritised force preservation; the risk is ceding the initiative."
+    else:
+        name, summary = "Balanced Operator", "Mixed actions across the scenario without a dominant pattern."
+    return {"name": name, "summary": summary,
+            "mix": {"action": round(active, 2), "information": round(info, 2), "defensive": round(defensive, 2)}}
+
+
+def _cognitive_profile(state: ScenarioState, reviews: list[dict]) -> dict:
+    """How the commander *thought*: belief calibration, cognitive biases, decision regret."""
+    decs = state.decisions
+    biases = []
+
+    def flag(key, name, d_idx, detail):
+        biases.append({"key": key, "name": name, "decision": d_idx + 1, "detail": detail, "tip": BIAS_TIPS[key]})
+
+    # ── Calibration of the commander's assessments
+    assessed = [(i, d) for i, d in enumerate(decs) if d.assessment and "assessment_error" in d.context["truth"]]
+    calibration = None
+    beliefs = []
+    for i, d in assessed:
+        err = d.context["truth"]["assessment_error"]
+        ev_err = d.context["truth"].get("evidence_error")
+        hit = err <= 3.0
+        beliefs.append({"decision": i + 1, "confidence": d.assessment["confidence"], "error": err,
+                        "evidence_error": ev_err, "hit": hit, "grid": d.assessment["grid"],
+                        "evidence_grid": (d.context.get("evidence_estimate") or {}).get("grid")})
+    if beliefs:
+        brier = sum((b["confidence"] - (1.0 if b["hit"] else 0.0)) ** 2 for b in beliefs) / len(beliefs)
+        mean_conf = sum(b["confidence"] for b in beliefs) / len(beliefs)
+        hit_rate = sum(b["hit"] for b in beliefs) / len(beliefs)
+        gap = mean_conf - hit_rate
+        label = "Overconfident" if gap > 0.15 else "Underconfident" if gap < -0.15 else "Well calibrated"
+        calibration = {"score": round(100 * (1 - brier)), "label": label, "gap": round(gap, 2),
+                       "mean_confidence": round(mean_conf, 2), "hit_rate": round(hit_rate, 2)}
+        if label == "Overconfident":
+            calibration["summary"] = (f"You were {gap:.0%} more confident than your accuracy justified "
+                                      f"(avg confidence {mean_conf:.0%}, belief within 3 grid of the enemy {hit_rate:.0%} of the time).")
+        elif label == "Underconfident":
+            calibration["summary"] = (f"Your read of the battlefield was better than you trusted it to be "
+                                      f"(avg confidence {mean_conf:.0%}, accurate {hit_rate:.0%} of the time).")
+        else:
+            calibration["summary"] = (f"Your confidence matched your accuracy "
+                                      f"(avg confidence {mean_conf:.0%}, accurate {hit_rate:.0%} of the time).")
+
+    # ── Bias detectors (all rule-based and explainable)
+    first_belief = None
+    for i, d in enumerate(decs):
+        c = d.context
+        a = d.assessment
+        dt = d.decision_type
+        if a:
+            conf = a["confidence"]
+            ev = c.get("evidence_estimate")
+            anchor = c.get("assessment_anchor")
+
+            if first_belief and ev and _dist(a, first_belief) < 2 and _dist(ev, first_belief) > 3.5:
+                flag("anchoring", "Anchoring", i,
+                     f"Your estimate stayed at grid {a['grid']}, near your first belief, although the evidence "
+                     f"had moved to grid {ev['grid']} ({_dist(ev, first_belief):.1f} grid away).")
+            first_belief = first_belief or a
+
+            if anchor and anchor["distance"] < 2.5 and anchor["delay_s"] > 0:
+                fresher = [r for r in c["reports"] if r["delay_s"] == 0 and r["confidence"] >= anchor["confidence"]
+                           and r["category"] != "COMM"]
+                if fresher:
+                    flag("stale_source", "Stale-source trust", i,
+                         f"Your estimate followed {anchor['source']}'s report, which was {anchor['delay_s']:.0f}s old, "
+                         f"over a fresher report from {fresher[0]['source']} at {fresher[0]['confidence']:.0%}.")
+
+            reps = [r for r in c["reports"] if r["category"] != "COMM"]
+            if anchor and reps and anchor["distance"] < 2.5 and anchor["id"] == reps[-1]["id"]:
+                best = max(reps, key=lambda r: r["confidence"])
+                if best["id"] != anchor["id"] and best["confidence"] - anchor["confidence"] > 0.15 \
+                        and _dist(best["position"], reps[-1]["position"]) > 3:
+                    flag("recency", "Recency bias", i,
+                         f"Your estimate followed the latest report ({anchor['source']}, {anchor['confidence']:.0%}) "
+                         f"instead of the most reliable one ({best['source']}, {best['confidence']:.0%}).")
+
+            if conf >= 0.75 and c["conflict"] and not c["recon_fresh"]:
+                flag("overconfidence", "Overconfidence under conflict", i,
+                     f"You rated your estimate at {conf:.0%} while reports conflicted ({c['spread']} grid apart).")
+            if conf >= 0.7 and dt in (DecisionType.OBSERVE, DecisionType.REQUEST_RECON) and _good_picture(c):
+                flag("hesitation", "Belief–action mismatch (hesitation)", i,
+                     f"You were {conf:.0%} sure of the threat and the picture was clear, yet you chose {dt.value.replace('_', ' ')}.")
+            if conf <= 0.4 and dt == DecisionType.INTERCEPT:
+                flag("rash_commitment", "Belief–action mismatch (rash commitment)", i,
+                     f"You rated your own estimate at only {conf:.0%} but still ordered an INTERCEPT.")
+
+        if i > 0:
+            prev = decs[i - 1]
+            passive = (DecisionType.OBSERVE, DecisionType.HOLD, DecisionType.REQUEST_RECON)
+            if dt in passive and prev.decision_type in passive and _good_picture(c):
+                flag("paralysis", "Analysis paralysis", i,
+                     f"A second consecutive wait ({prev.decision_type.value.replace('_', ' ')} → "
+                     f"{dt.value.replace('_', ' ')}) although the picture already supported action.")
+            prev_out = next((x for x in prev.context.get("alternatives", [])
+                             if x["decision_type"] == prev.decision_type.value), None)
+            if dt == DecisionType.INTERCEPT and prev.decision_type == DecisionType.INTERCEPT and prev_out \
+                    and "found no enemy" in prev_out["outcome"] and not _good_picture(c):
+                flag("escalation", "Escalation of commitment", i,
+                     "After an intercept that found nothing, you ordered another on an equally uncertain picture.")
+
+    # ── Decision regret from the counterfactual replays
+    regret = []
+    for r, d in zip(reviews, decs):
+        alts = d.context.get("alternatives") or []
+        if not alts:
+            continue
+        best = max(alts, key=lambda x: x["score"])
+        regret.append({"decision": r["index"], "chosen": d.decision_type.value, "chosen_score": r["total"],
+                       "best": best["decision_type"], "best_score": best["score"],
+                       "regret": round(max(0.0, best["score"] - r["total"]), 1)})
+    total_regret = round(sum(x["regret"] for x in regret), 1)
+    optimal = sum(1 for x in regret if x["regret"] < 1)
+
+    return {
+        "profile": _commander_profile(decs, calibration, biases, total_regret),
+        "calibration": calibration,
+        "beliefs": beliefs,
+        "biases": biases,
+        "regret": regret,
+        "total_regret": total_regret,
+        "optimal_choices": optimal,
+        "decisions": len(decs),
+    }
+
+
 def compute_score(state: ScenarioState) -> ScoreBreakdown:
     """Score the trainee's performance across 5 dimensions, averaged over all decisions."""
     score = ScoreBreakdown()
@@ -864,6 +1120,16 @@ def compute_score(state: ScenarioState) -> ScoreBreakdown:
     dropped = len(state.ground_truth.get("dropped_reports", []))
     if dropped:
         score.explanations.append(f"{dropped} report(s) never reached you due to link dropout — part of the fog you were trained against.")
+    cog = _cognitive_profile(state, reviews)
+    score.cognitive = cog
+    if cog["calibration"]:
+        score.explanations.append(f"Belief calibration: {cog['calibration']['label']}. {cog['calibration']['summary']}")
+    if cog["biases"]:
+        names = sorted({b["name"] for b in cog["biases"]})
+        score.explanations.append(f"Cognitive patterns detected: {', '.join(names)} — see the Cognitive tab.")
+    score.explanations.append(
+        f"Best available action chosen in {cog['optimal_choices']} of {cog['decisions']} decisions "
+        f"(total decision regret {cog['total_regret']:.0f} points).")
     score.explanations.append("Scores judge each decision on the information you had at the time, not on the hidden ground truth.")
 
     return score

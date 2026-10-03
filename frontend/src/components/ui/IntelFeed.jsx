@@ -12,6 +12,19 @@ const CATEGORY_ICONS = {
   RECON: '🛩️',
 };
 
+const GARBLE = '▒▒▒';
+
+/** Render lost words from degraded links as static blocks. */
+function Transmission({ text }) {
+  if (!text.includes(GARBLE)) return text;
+  return text.split(GARBLE).map((part, i, arr) => (
+    <React.Fragment key={i}>
+      {part}
+      {i < arr.length - 1 && <span className="garble" title="Lost in transmission">{GARBLE}</span>}
+    </React.Fragment>
+  ));
+}
+
 function ConfidenceBar({ value }) {
   const color = value > 0.7 ? '#4caf50' : value > 0.4 ? '#ff9800' : '#f44336';
   return (
@@ -57,7 +70,7 @@ export default function IntelFeed() {
                 <span>R{report.round} · obs {missionTime(report.timestamp, startedAt)}</span>
                 {report.delay_s > 0 && <span className="feed-delay">received {report.delay_s.toFixed(0)}s late</span>}
               </div>
-              <div className="feed-content">{report.content}</div>
+              <div className="feed-content"><Transmission text={report.content} /></div>
               <div className="feed-footer">
                 <ConfidenceBar value={report.confidence} />
                 {report.reported_position && (

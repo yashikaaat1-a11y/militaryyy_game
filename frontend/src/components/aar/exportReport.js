@@ -55,6 +55,20 @@ export function printReport(report) {
       </div>`;
   }).join('');
 
+  const cog = score.cognitive || {};
+  const cal = cog.calibration;
+  const cognitiveHtml = `
+    ${cog.profile ? `<p><b>Commander profile: ${esc(cog.profile.name)}</b> — ${esc(cog.profile.summary)}</p>` : ''}
+    ${cal ? `<p><b>Belief calibration: ${cal.score}/100 (${esc(cal.label)})</b> — ${esc(cal.summary)}</p>` : ''}
+    <p><b>Best-available calls:</b> ${cog.optimal_choices ?? 0} of ${cog.decisions ?? 0} · <b>Decision regret:</b> ${Math.round(cog.total_regret || 0)} points</p>
+    ${(cog.regret || []).length ? `<table><tr><th>#</th><th>Your call</th><th>Score</th><th>Best on evidence</th><th>Score</th><th>Regret</th></tr>
+      ${cog.regret.map((r) => `<tr><td>${r.decision}</td><td>${esc(r.chosen.replace('_', ' '))}</td><td>${Math.round(r.chosen_score)}</td>
+        <td>${esc(r.best.replace('_', ' '))}</td><td>${Math.round(r.best_score)}</td><td>${Math.round(r.regret)}</td></tr>`).join('')}</table>` : ''}
+    <h3 style="margin-top:10px">Cognitive patterns</h3>
+    ${(cog.biases || []).length
+      ? `<ul>${cog.biases.map((b) => `<li><b>${esc(b.name)}</b> (decision ${b.decision}): ${esc(b.detail)} <i>Tip: ${esc(b.tip)}</i></li>`).join('')}</ul>`
+      : '<p>No bias patterns detected.</p>'}`;
+
   const events = timeline.events.map((e) =>
     `<tr><td>T+${formatT(e.timestamp - started)}</td><td>${esc(e.event_type)}</td><td>${esc(e.description)}</td></tr>`).join('');
 
@@ -90,6 +104,9 @@ export function printReport(report) {
 
   <h2>Key findings</h2>
   <ul>${score.explanations.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>
+
+  <h2>How the commander thought</h2>
+  ${cognitiveHtml}
 
   <h2>Decisions — knowledge vs ground truth</h2>
   ${decisionBlocks || '<p>No decisions were made.</p>'}

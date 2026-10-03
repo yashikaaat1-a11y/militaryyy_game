@@ -16,6 +16,8 @@ const EMPTY = {
   replayIndex: null,     // null = live view; number = replay frame shown in the 3D scene
   groundTruth: null,
   isPaused: false,
+  assessment: null,      // commander's belief pin {x, z} for the pending decision
+  assessConfidence: 0.5,
 };
 
 let pollTimer = null;
@@ -26,12 +28,21 @@ export const useGameStore = create((set, get) => ({
   error: null,
   view: 'SCENARIO',      // SCENARIO | AAR | INSTRUCTOR
   selectedUnit: null,
+  radioOn: (() => {
+    try { return localStorage.getItem('tacticomm.radio') !== 'off'; } catch { return true; }
+  })(),
 
   // ── Actions ──
   setView: (view) => set({ view }),
   setSelectedUnit: (unit) => set({ selectedUnit: unit }),
   setReplayIndex: (i) => set((s) => ({ replayIndex: typeof i === 'function' ? i(s.replayIndex ?? 0) : i })),
   clearError: () => set({ error: null }),
+  setAssessment: (pos) => set({ assessment: pos }),
+  toggleRadio: () => set((s) => {
+    try { localStorage.setItem('tacticomm.radio', s.radioOn ? 'off' : 'on'); } catch { /* storage unavailable */ }
+    return { radioOn: !s.radioOn };
+  }),
+  setAssessConfidence: (c) => set({ assessConfidence: c }),
 
   /** Apply a server state snapshot to the store. */
   applyState: async (state) => {
@@ -104,7 +115,13 @@ export const useGameStore = create((set, get) => ({
 
   advancePhase: () => get().run(() => api.advancePhase()),
 
-  makeDecision: (decisionType, reasoning) => get().run(() => api.makeDecision(decisionType, reasoning)),
+  makeDecision: async (decisionType, reasoning) => {
+    const { assessment, assessConfidence } = get();
+    const a = assessment ? { ...assessment, confidence: assessConfidence } : null;
+    const res = await get().run(() => api.makeDecision(decisionType, reasoning, a));
+    if (res) set({ assessment: null, assessConfidence: 0.5 });
+    return res;
+  },
 
   setPaused: (paused) => get().run(() => api.setPaused(paused)),
 

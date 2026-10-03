@@ -26,8 +26,8 @@ export const api = {
 
   advancePhase: () => post('/scenario/advance'),
 
-  makeDecision: (decisionType, reasoning) =>
-    post('/scenario/decide', { decision_type: decisionType, reasoning }),
+  makeDecision: (decisionType, reasoning, assessment) =>
+    post('/scenario/decide', { decision_type: decisionType, reasoning, assessment }),
 
   setPaused: (paused) => post('/scenario/pause', { paused }),
 

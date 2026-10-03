@@ -89,6 +89,7 @@ class Decision(BaseModel):
     phase: ScenarioPhase = ScenarioPhase.DECISION
     round: int = 1
     context: dict = {}  # what the trainee knew (and, hidden, the truth) at decision time
+    assessment: Optional[dict] = None  # commander's belief: {x, z, confidence}
 
 
 class ScenarioEvent(BaseModel):
@@ -108,6 +109,7 @@ class ScoreBreakdown(BaseModel):
     total: float = 0.0
     explanations: list[str] = []
     decision_reviews: list[dict] = []  # per-decision breakdown + verdict
+    cognitive: dict = {}  # calibration, detected biases, decision regret
 
 
 class ScenarioConfig(BaseModel):

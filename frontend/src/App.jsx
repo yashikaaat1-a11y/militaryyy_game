@@ -9,6 +9,8 @@ import EventTimeline from './components/ui/EventTimeline';
 import CommStatus from './components/ui/CommStatus';
 import AARPanel from './components/aar/AARPanel';
 import InstructorDashboard from './components/instructor/InstructorDashboard';
+import { useRadio } from './engine/useRadio';
+import { unlockAudio } from './engine/radio';
 import './App.css';
 
 function WelcomeScreen() {
@@ -36,7 +38,7 @@ function WelcomeScreen() {
         <div className="welcome-actions">
           <button
             className="welcome-btn primary"
-            onClick={() => createScenario()}
+            onClick={() => { unlockAudio(); createScenario(); }}
             disabled={isLoading}
           >
             {isLoading ? 'INITIALIZING...' : '🎯 START SCENARIO'}
@@ -63,6 +65,8 @@ function ScenarioView() {
   const error = useGameStore((s) => s.error);
   const clearError = useGameStore((s) => s.clearError);
   const isPaused = useGameStore((s) => s.isPaused);
+  const radioOn = useGameStore((s) => s.radioOn);
+  const toggleRadio = useGameStore((s) => s.toggleRadio);
 
   const showAAR = view === 'AAR' || phase === 'AAR';
 
@@ -81,6 +85,13 @@ function ScenarioView() {
           <PhaseIndicator />
         </div>
         <div className="top-bar-right">
+          <button
+            className={`nav-btn radio-btn ${radioOn ? 'active' : ''}`}
+            onClick={() => { unlockAudio(); toggleRadio(); }}
+            title="Hear incoming radio traffic"
+          >
+            📻 RADIO {radioOn ? 'ON' : 'OFF'}
+          </button>
           <button
             className={`nav-btn ${view === 'SCENARIO' ? 'active' : ''}`}
             onClick={() => setView('SCENARIO')}
@@ -155,6 +166,7 @@ export default function App() {
   const view = useGameStore((s) => s.view);
   const startPolling = useGameStore((s) => s.startPolling);
   const stopPolling = useGameStore((s) => s.stopPolling);
+  useRadio();
 
   useEffect(() => {
     startPolling();

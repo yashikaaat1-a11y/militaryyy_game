@@ -31,9 +31,16 @@ current_state: Optional[ScenarioState] = None
 REVEALED_PHASES = (ScenarioPhase.REVEAL, ScenarioPhase.AAR)
 
 
+class Assessment(BaseModel):
+    x: float
+    z: float
+    confidence: float = 0.5
+
+
 class DecisionRequest(BaseModel):
     decision_type: str
     reasoning: Optional[str] = None
+    assessment: Optional[Assessment] = None  # commander's belief about the main threat
 
 
 class ConfigRequest(BaseModel):
@@ -84,7 +91,8 @@ def public_state(state: ScenarioState) -> dict:
     for r in data["reports"]:
         r.pop("is_accurate", None)
     for d in data["decisions"]:
-        d["context"].pop("truth", None)
+        for hidden in ("truth", "alternatives"):  # outcomes of what-ifs reveal the truth
+            d["context"].pop(hidden, None)
     return data
 
 
@@ -134,6 +142,7 @@ def make_decision(req: DecisionRequest):
         decision_type=dt,
         reasoning=req.reasoning,
         timestamp=time.time(),
+        assessment=req.assessment.model_dump() if req.assessment else None,
     )
     try:
         process_decision(state, decision)
@@ -208,6 +217,9 @@ def get_comparison():
             "knowledge": {k: c[k] for k in (
                 "reports", "avg_confidence", "spread", "conflict", "type_conflict", "recon_fresh",
                 "best_report", "lost_units", "delayed_units", "comm_status", "wait_s", "window_s")},
+            "assessment": d.assessment,
+            "evidence_estimate": c.get("evidence_estimate"),
+            "alternatives": c.get("alternatives", []),
             "truth": c["truth"],
             "verdict": review.get("verdict"),
             "total": review.get("total"),
@@ -274,7 +286,8 @@ def instructor_status():
         "decisions_made": len(state.decisions),
         "decisions": [
             {"index": i + 1, "round": d.round, "decision_type": d.decision_type.value,
-             "reasoning": d.reasoning, "t": d.context.get("t"), "wait_s": d.context.get("wait_s")}
+             "reasoning": d.reasoning, "t": d.context.get("t"), "wait_s": d.context.get("wait_s"),
+             "assessment": d.assessment}
             for i, d in enumerate(state.decisions)
         ],
         "reports_generated": len(state.reports),

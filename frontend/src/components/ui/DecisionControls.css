@@ -201,3 +201,52 @@
   height: 100%;
   transition: width 0.25s linear, background 0.5s;
 }
+
+/* Commander's assessment step */
+.assess-box {
+  border: 1px dashed rgba(77, 208, 225, 0.6);
+  background: rgba(77, 208, 225, 0.05);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  animation: assessPulse 2s ease-in-out infinite;
+}
+
+.assess-box.done {
+  border-style: solid;
+  animation: none;
+}
+
+@keyframes assessPulse {
+  50% { border-color: rgba(77, 208, 225, 0.15); }
+}
+
+.assess-step {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: #4dd0e1;
+  margin-bottom: 4px;
+}
+
+.assess-hint { font-size: 11px; color: #c9d1d9; }
+.assess-pos { font-size: 11px; color: #4dd0e1; }
+
+.assess-conf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 10px;
+  color: #8b949e;
+}
+
+.assess-conf input { flex: 1; accent-color: #4dd0e1; }
+
+.assess-conf-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #4dd0e1;
+  min-width: 34px;
+  text-align: right;
+}

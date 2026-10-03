@@ -53,6 +53,25 @@ If the API runs somewhere else, start the frontend with `VITE_API_BASE=http://ho
 
 The instructor can run on a second screen, because both views poll the same backend.
 
+## What makes it different
+
+Most trainers score *what you clicked*. TactiComm also measures *how you thought*.
+
+- **Commander's Assessment:** before every order, the trainee pins on the 3D map where they believe the main threat is and states a confidence. The pin's ring widens as confidence drops. Orders can't be executed until the belief is on record.
+- **Belief calibration:** a Brier-based score compares stated confidence with actual accuracy. It labels the commander *Overconfident*, *Underconfident* or *Well calibrated*. The AAR replay shows three pins side by side: **your estimate** (cyan), **what the evidence supported** (purple, a confidence-weighted reading of the reports) and **the truth** (red).
+- **Cognitive bias detection:** eight rule-based, explainable detectors, each citing the decision and the evidence, with a coaching tip:
+  - Anchoring
+  - Stale-source trust
+  - Recency bias
+  - Overconfidence under conflict
+  - Hesitation despite confidence
+  - Rash commitment despite doubt
+  - Analysis paralysis
+  - Escalation of commitment
+- **What-If Explorer (counterfactuals):** at every decision the engine clones the simulation and plays out all six actions from the exact same moment. For each one the AAR shows the in-context score and what would really have happened (strength lost, enemy halted, contact made). It also reports **decision regret**, meaning points left on the table, and the number of best-available calls.
+- **Commander profile:** an archetype drawn from the decision pattern, such as *Adaptive Commander*, *Methodical Analyst*, *Hesitant Analyst*, *Bold Striker*, *Aggressive Gambler* or *Cautious Guardian*.
+- **Live radio traffic:** incoming reports are spoken with radio procedure ("Overlord, this is Bravo… grid Echo seven… Over"), with squelch and static. On degraded links words are physically lost: static replaces them in the audio and `▒▒▒` replaces them in the text. Toggle it with **📻 RADIO** in the top bar.
+
 ## How it works
 
 - **Hidden ground truth:** enemy positions live only on the server. The trainee's API responses omit them (and each report's accuracy flag) until the reveal.

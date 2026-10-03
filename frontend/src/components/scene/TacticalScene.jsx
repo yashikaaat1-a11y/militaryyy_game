@@ -11,6 +11,7 @@ import CommandCentre from './CommandCentre';
 import UnitMarker from './UnitMarker';
 import CommLinks from './CommLinks';
 import ContactMarker from './ContactMarker';
+import { AssessmentPicker, BeliefPin } from './AssessmentLayer';
 import { formatT } from '../../utils/format';
 
 const INFO_CATEGORIES = ['CONTACT', 'SIGINT', 'RECON'];
@@ -23,6 +24,7 @@ function Legend({ showTruth }) {
     <div className="scene-legend">
       {item(<span className="legend-swatch" style={{ background: '#2196f3' }} />, 'Friendly unit')}
       {item(<span className="legend-swatch diamond" style={{ borderColor: '#ff9800' }} />, 'Reported contact (? = confidence)')}
+      {item(<span className="legend-swatch" style={{ background: '#4dd0e1', borderRadius: '50%' }} />, 'Your threat estimate')}
       {showTruth && item(<span className="legend-swatch diamond solid" style={{ background: '#f44336' }} />, 'Actual enemy (ground truth)')}
       <div className="legend-sep" />
       {item(<span className="legend-line" style={{ borderColor: '#4caf50' }} />, 'Link normal')}
@@ -43,6 +45,7 @@ export default function TacticalScene() {
   const groundTruth = useGameStore((s) => s.groundTruth);
   const replayFrames = useGameStore((s) => s.replayFrames);
   const replayIndex = useGameStore((s) => s.replayIndex);
+  const decisions = useGameStore((s) => s.decisions);
 
   const frame = phase === 'AAR' && replayIndex !== null ? replayFrames[replayIndex] : null;
 
@@ -68,6 +71,11 @@ export default function TacticalScene() {
     const showGroundTruth = phase === 'REVEAL' || phase === 'AAR';
     hostiles = showGroundTruth && groundTruth?.hostile_units ? groundTruth.hostile_units : [];
   }
+
+  // In the AAR replay, show what the commander believed vs what the evidence supported
+  const replayDecision = frame && ['DECISION', 'CONSEQUENCE'].includes(frame.phase)
+    ? decisions.find((d) => d.round === frame.round)
+    : null;
 
   const hostileMarkers = hostiles.map((h) => ({
     position: h.position,
@@ -112,6 +120,14 @@ export default function TacticalScene() {
           {hostileMarkers.map((h, i) => (
             <ContactMarker key={`hostile-${i}`} {...h} />
           ))}
+
+          {!frame && <AssessmentPicker />}
+          {replayDecision?.assessment && (
+            <BeliefPin position={replayDecision.assessment} confidence={replayDecision.assessment.confidence} kind="you" />
+          )}
+          {replayDecision?.context?.evidence_estimate && (
+            <BeliefPin position={replayDecision.context.evidence_estimate} kind="evidence" />
+          )}
 
           <OrbitControls
             enablePan

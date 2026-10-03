@@ -172,3 +172,13 @@
 .feed-delay { color: #ffeb3b; }
 
 .feed-item.stale { opacity: 0.45; }
+
+.garble {
+  color: #ff9800;
+  letter-spacing: -1px;
+  animation: garbleFlicker 0.6s steps(2) infinite;
+}
+
+@keyframes garbleFlicker {
+  50% { opacity: 0.35; }
+}
