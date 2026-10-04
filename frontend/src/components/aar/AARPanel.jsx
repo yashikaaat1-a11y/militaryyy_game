@@ -107,7 +107,7 @@ function ReplayTab({ frames, index, setIndex }) {
   return (
     <div className="replay-section">
       <div className="replay-controls">
-        <button className="replay-btn" onClick={() => setIndex(0)} title="Start">⏮</button>
+        <button className="replay-btn" onClick={() => setIndex(0)} title="Start">|◀</button>
         <button className="replay-btn" onClick={() => setIndex(Math.max(0, index - 1))} title="Previous">◀</button>
         <button
           className="replay-btn primary"
@@ -116,10 +116,10 @@ function ReplayTab({ frames, index, setIndex }) {
             setPlaying((p) => !p);
           }}
         >
-          {playing ? '⏸ PAUSE' : '▶ PLAY'}
+          {playing ? 'PAUSE' : 'PLAY'}
         </button>
         <button className="replay-btn" onClick={() => setIndex(Math.min(frames.length - 1, index + 1))} title="Next">▶</button>
-        <button className="replay-btn" onClick={() => setIndex(frames.length - 1)} title="End">⏭</button>
+        <button className="replay-btn" onClick={() => setIndex(frames.length - 1)} title="End">▶|</button>
       </div>
       <input
         className="replay-slider"
@@ -167,7 +167,7 @@ function DecisionPointView({ point }) {
 
       <div className="comparison-view">
         <div className="comparison-column">
-          <div className="comparison-title trainee">👤 WHAT YOU KNEW</div>
+          <div className="comparison-title trainee">WHAT YOU KNEW</div>
           <div className="comparison-content">
             <div className="comparison-stat"><span>Avg confidence</span><span>{pct(k.avg_confidence)}</span></div>
             <div className="comparison-stat">
@@ -196,13 +196,13 @@ function DecisionPointView({ point }) {
         </div>
 
         <div className="comparison-column">
-          <div className="comparison-title truth">🎯 GROUND TRUTH AT THAT MOMENT</div>
+          <div className="comparison-title truth">GROUND TRUTH AT THAT MOMENT</div>
           <div className="comparison-content">
             {t.hostiles.map((h, i) => (
               <div key={i} className="comparison-report hostile">
-                <div className="report-source">⚠ {h.name}{h.engaged ? ' (engaged)' : ''}</div>
+                <div className="report-source">{h.name}{h.engaged ? ' (engaged)' : ''}</div>
                 <div className="report-text">{h.strength} · {h.type}</div>
-                <div className="report-pos">📍 grid {h.grid}</div>
+                <div className="report-pos">GRID {h.grid}</div>
               </div>
             ))}
             {k.best_report && (
@@ -294,7 +294,7 @@ function TimelineTab({ events, startedAt, frames, setReplayIndex }) {
 function FeedbackTab({ score, decisions, maxDecisions }) {
   return (
     <div className="feedback-section">
-      <div className="feedback-title">📝 Performance Analysis</div>
+      <div className="feedback-title">PERFORMANCE ANALYSIS</div>
       {score.explanations.map((exp, i) => (
         <div key={i} className="feedback-item">
           <div className="feedback-bullet" />
@@ -304,7 +304,7 @@ function FeedbackTab({ score, decisions, maxDecisions }) {
 
       {score.decision_reviews?.length > 0 && (
         <div className="decision-summary">
-          <div className="feedback-title">⚡ Decisions Made ({decisions.length} / {maxDecisions})</div>
+          <div className="feedback-title">DECISIONS MADE ({decisions.length} / {maxDecisions})</div>
           {score.decision_reviews.map((r) => (
             <div key={r.index} className="review-card" style={{ borderLeftColor: scoreColor(r.total) }}>
               <div className="review-card-head">
@@ -314,7 +314,7 @@ function FeedbackTab({ score, decisions, maxDecisions }) {
               <div className="feedback-text">{r.explanation}</div>
               {r.notes.map((n, i) => <div key={i} className="review-note">• {n}</div>)}
               {r.reasoning && <div className="decision-reasoning">Your reasoning: "{r.reasoning}"</div>}
-              {r.truth_note && <div className="dp-truth-note">🔍 {r.truth_note}</div>}
+              {r.truth_note && <div className="dp-truth-note"><span>GROUND TRUTH</span>{r.truth_note}</div>}
             </div>
           ))}
         </div>
@@ -353,20 +353,19 @@ export default function AARPanel() {
   };
 
   const TABS = [
-    ['score', '📊 Scores'],
-    ['cognitive', '🧠 Cognitive'],
-    ['whatif', '🔀 What-If'],
-    ['replay', '⏪ Replay'],
-    ['comparison', '🔍 Knew vs Truth'],
-    ['timeline', '📋 Timeline'],
-    ['feedback', '💡 Feedback'],
+    ['score', 'SCORES'],
+    ['cognitive', 'COGNITIVE'],
+    ['whatif', 'WHAT-IF'],
+    ['replay', 'REPLAY'],
+    ['comparison', 'KNEW vs TRUTH'],
+    ['timeline', 'TIMELINE'],
+    ['feedback', 'FEEDBACK'],
   ];
 
   return (
     <div className="aar-panel">
       <div className="aar-header">
         <div className="aar-title">
-          <span className="aar-icon">📊</span>
           AFTER ACTION REVIEW
         </div>
         <div className="aar-total" style={{ color: totalColor }}>
@@ -398,10 +397,10 @@ export default function AARPanel() {
       </div>
 
       <div className="aar-footer">
-        <button className="export-btn" onClick={() => handleExport('json')}>⬇ EXPORT JSON</button>
-        <button className="export-btn" onClick={() => handleExport('pdf')}>🖨 EXPORT PDF</button>
+        <button className="export-btn" onClick={() => handleExport('json')}>EXPORT JSON</button>
+        <button className="export-btn" onClick={() => handleExport('pdf')}>EXPORT PDF</button>
         <button className="restart-btn" onClick={resetScenario}>
-          🔄 NEW SCENARIO
+          NEW EXERCISE
         </button>
       </div>
     </div>

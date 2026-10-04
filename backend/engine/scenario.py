@@ -43,8 +43,8 @@ def create_default_scenario(config: Optional[ScenarioConfig] = None) -> Scenario
     elif cfg.scenario_type == "RIVER":
         state.units = [
             Unit(name="Command Boat", callsign="OVERLORD", unit_type=UnitType.COMMAND, faction=Faction.FRIENDLY, position=Position(x=-8, y=0, z=0)),
-            Unit(name="Marine Squad", callsign="DELTA", unit_type=UnitType.INFANTRY, faction=Faction.FRIENDLY, position=Position(x=2, y=0, z=-4)),
-            Unit(name="Patrol Boat", callsign="RIVER-1", unit_type=UnitType.ARMOR, faction=Faction.FRIENDLY, position=Position(x=4, y=0, z=6)),
+            Unit(name="Marine Squad", callsign="DELTA", unit_type=UnitType.INFANTRY, faction=Faction.FRIENDLY, position=Position(x=-4.5, y=0, z=-4)),
+            Unit(name="Patrol Boat", callsign="RIVER-1", unit_type=UnitType.ARMOR, faction=Faction.FRIENDLY, position=Position(x=6.5, y=0, z=6)),
             Unit(name="Scout Swimmer", callsign="FROG", unit_type=UnitType.RECON, faction=Faction.FRIENDLY, position=Position(x=8, y=0, z=2)),
         ]
         state.ground_truth = {
@@ -684,10 +684,22 @@ def _knowledge_context(state: ScenarioState, decision: Decision) -> dict:
     }
 
 
-def _move_toward(u: Unit, target: dict, frac: float):
+# River channel on the RIVER map (water x -2..4, plus a margin for the banks)
+RIVER_BAND = (-2.6, 4.6)
+
+
+def _keep_on_land(state: ScenarioState, u: Unit):
+    """Units never end a move standing in the river: snap to the nearer bank."""
+    lo, hi = RIVER_BAND
+    if state.config.scenario_type == "RIVER" and lo < u.position.x < hi:
+        u.position.x = lo if u.position.x - lo < hi - u.position.x else hi
+
+
+def _move_toward(state: ScenarioState, u: Unit, target: dict, frac: float):
     tx, tz = _xz(target)
     u.position.x = round(u.position.x + (tx - u.position.x) * frac, 2)
     u.position.z = round(u.position.z + (tz - u.position.z) * frac, 2)
+    _keep_on_land(state, u)
 
 
 def _apply_consequences(state: ScenarioState, decision: Decision):
@@ -706,7 +718,7 @@ def _apply_consequences(state: ScenarioState, decision: Decision):
         outcome = "Continued observation. Sensors refocused — next reports will be more reliable, but the enemy keeps moving."
 
     elif dt == DecisionType.MOVE and unit_1:
-        _move_toward(unit_1, target or {"x": unit_1.position.x, "z": unit_1.position.z + 4}, 0.35)
+        _move_toward(state, unit_1, target or {"x": unit_1.position.x, "z": unit_1.position.z + 4}, 0.35)
         state.modifiers["vantage"] = unit_1.callsign
         outcome = f"{unit_1.callsign} repositioned to grid {grid(unit_1.position)} for a better vantage point."
         if any(_dist(h["position"], unit_1.position) < 3 for h in _hostiles(state)):
@@ -718,7 +730,7 @@ def _apply_consequences(state: ScenarioState, decision: Decision):
         missed = [u.callsign for u in subs if u.comm_status == CommStatus.LOST]
         if target:
             for u in participants:
-                _move_toward(u, target, 0.6)
+                _move_toward(state, u, target, 0.6)
         hit = None
         if target:
             near = min(_hostiles(state), key=lambda h: _dist(h["position"], target), default=None)
@@ -744,6 +756,7 @@ def _apply_consequences(state: ScenarioState, decision: Decision):
     elif dt == DecisionType.WITHDRAW:
         for u in subs:
             u.position.z = round(max(-12, u.position.z - 3), 2)
+            _keep_on_land(state, u)
             if u.comm_status == CommStatus.LOST:
                 u.comm_status, u.comm_delay_ms = CommStatus.DEGRADED, 2500
                 u.last_known_position = None

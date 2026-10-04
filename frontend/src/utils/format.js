@@ -13,3 +13,11 @@ export function missionTime(epoch, startedAt) {
 }
 
 export const pct = (v) => `${Math.round((v || 0) * 100)}%`;
+
+/** Map grid reference, identical to the engine's grid(): 3×3 cells, A–J / 0–9. */
+export function gridRef(p) {
+  const clamp = (v) => Math.max(0, Math.min(9, v));
+  const col = String.fromCharCode(65 + clamp(Math.floor((p.x + 15) / 3)));
+  const row = clamp(Math.floor((p.z + 15) / 3));
+  return `${col}-${row}`;
+}
